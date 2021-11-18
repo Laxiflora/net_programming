@@ -1,0 +1,17 @@
+I am a Plain Text lol.
+
+struct {
+	char *ext;
+	char *filetype;
+} extensions [] = {
+	{"gif", "image/gif" },
+	{"jpg", "image/jpeg"},
+	{"jpeg","image/jpeg"},
+	{"png", "image/png" },
+	{"zip", "image/zip" },
+	{"gz",  "image/gz"  },
+	{"tar", "image/tar" },
+	{"htm", "text/html" },
+	{"html","text/html" },
+	{"exe","text/plain" },
+	{0,0} };

@@ -19,17 +19,18 @@ int main(int argc,char* argv[]){
     }
 
     //-----set socket address info-----
-    struct sockaddr_in serv_info;
+    struct sockaddr_in conn_info;
 
-    bzero(&serv_info , sizeof(serv_info));
-    serv_info.sin_family = PF_INET;
-    serv_info.sin_port = htons(8081);
-    serv_info.sin_addr.s_addr = inet_addr("127.0.0.1");
+    bzero(&conn_info , sizeof(conn_info));
+    conn_info.sin_family = PF_INET;
+    conn_info.sin_port = htons(80);
+    conn_info.sin_addr.s_addr = inet_addr("127.0.0.5");
     //----------------------------------
 
-    if(connect(sockfd , (struct sockaddr* ) &serv_info , sizeof(serv_info)) == -1 ){
+    if(connect(sockfd , (struct sockaddr* ) &conn_info , sizeof(conn_info)) == -1 ){
         perror("Connection error ");
     }
+    
 
     return 0;
 }
