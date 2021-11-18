@@ -7,25 +7,38 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
-#define BUFFER_SIZE 16192
+#define BUFFER_SIZE 8096
 
 
 
 
 void sendData(int,char*,char*);
 
-void getData(int clifd , char* buffer){
+void getData(int clifd , char* buffer , char* fstr , char* extension){
     int tokenLength=0;
-    char* start = strstr(buffer , "Content-Type: text/html");  //image/jpeg
-    char* end = strstr(start,"---");
-    start+=27;
+    char temp[128];
+    sprintf(temp,"Content-Type: %s",fstr);
+    char* start = strstr(buffer , temp);  //image/jpeg
+    char* end = strstr(start,"-------");
+    start+=28;
     char rawData[BUFFER_SIZE];
     memcpy(rawData,start,(end-start));
-    printf("生資料 = %s",rawData);
-    FILE* fd = fopen("upload.html","w+");
-    fprintf(fd,"%s",rawData);
-    fclose(fd);
-    //sendData(clifd , "./index.html","text/html");
+    char dataName[128];
+    sprintf(dataName,"upload%s",extension);
+    if(!strcmp(extension,".jpg") || !strcmp(extension,".png")){
+        for(int i=0;i<sizeof(buffer);i++){
+            printf("%c",buffer[i]);
+        }
+        FILE* fd = fopen(dataName,"wb");
+        fprintf(fd,"%s",rawData);
+        fclose(fd);
+    }
+    else{
+        FILE* fd = fopen(dataName,"w+");
+        fprintf(fd,"%s",rawData);
+        fclose(fd);
+    }
+    sendData(clifd , "./index.html","text/html");
 }
 
 void sendData(int clifd , char* requestedFile,char* contentType){
@@ -45,6 +58,11 @@ void sendData(int clifd , char* requestedFile,char* contentType){
 
 
 void handle_request(int clifd){
+
+    char* category[5] = {"image/jpeg","image/png","text/html","text/plain","image/zip"};
+    char* category_[5] = {".jpg",".png",".html",".txt",".zip"};
+
+
     long ret = 0;
     static char buffer[BUFFER_SIZE+1];
     ret = read(clifd , buffer , BUFFER_SIZE);
@@ -53,10 +71,46 @@ void handle_request(int clifd){
         exit(3);
     }
 
-    for(int i=0;i<sizeof(buffer);i++){
-        printf("%c",buffer[i]);
+
+    int buflen = strlen(buffer);
+	char fstr[128],extension[128];
+/*-----------------------判別種類--------------*/
+    if(strstr(buffer,"image/jpeg")!=NULL){
+        sprintf(fstr,"%s","image/jpeg");
+        sprintf(extension,"%s",".jpg");
+    }
+    if(strstr(buffer,"image/png")!=NULL){
+        sprintf(fstr,"%s","image/png");
+        sprintf(extension,"%s",".png");
+    }
+    if(strstr(buffer,"text/html")!=NULL){
+        sprintf(fstr,"%s","text/html");
+        sprintf(extension,"%s",".html");
+    }
+    if(strstr(buffer,"text/plain")!=NULL){
+        sprintf(fstr,"%s","text/plain");
+        sprintf(extension,"%s",".txt");
+    }
+    if(strstr(buffer,"image/zip")!=NULL){
+        sprintf(fstr,"%s","image/zip");
+        sprintf(extension,"%s",".zip");
     }
 
+
+/*
+	for(int i=0;i<5;i++) {
+        char* temp = buffer;
+
+		if(strstr(temp,category[i]) != NULL) {
+            printf("i等於:%d\n",i);
+			sprintf(fstr,"%s",category[i]);
+            sprintf(extension,"%s",category_[i]);
+            printf("fstr等於:%s",fstr);
+			break;
+		}
+    }
+*/
+/*--------------------------------------*/
     if(!strncmp(buffer, "GET / " , 6) || !strncmp(buffer , "get / ",6)){  //GET -> requesting html
         sendData(clifd , "./index.html","text/html");
     }
@@ -64,14 +118,22 @@ void handle_request(int clifd){
         sendData(clifd , "pic.jpg" , "image/jpeg");
     }
     else if(!strncmp(buffer, "POST /" , 5) || !strncmp(buffer , "post /",5)){// POST -> ready to get data
-        getData(clifd , buffer);
+        getData(clifd , buffer, fstr , extension);
     }
     
-    
-    
-    printf("leaving\n");
     exit(1);
 }
+
+void sigchld(int signo)
+{
+	printf("child in sigchild\n");
+    pid_t pid;
+	
+	while((pid=waitpid(-1, NULL, WNOHANG))>0);
+}
+
+
+
 
 int main(int argc,char* argv[]){
     //create socket
@@ -91,10 +153,10 @@ int main(int argc,char* argv[]){
     serv_info.sin_addr.s_addr = inet_addr("127.0.0.1");
     bind(sockfd , (struct sockaddr*) &serv_info , sizeof(serv_info) );
     listen(sockfd,5);
+    signal(SIGCHLD, sigchld);
 
     //----------------------------------
     while(1){
-        printf("listenling\n\n");
         int clifd = accept(sockfd , (struct sockaddr*) &cli_info , &address_len);
         int pid = 0;
         if( clifd<0 ){
@@ -109,7 +171,6 @@ int main(int argc,char* argv[]){
         else if(pid == 0){    //child process: close listenfd
             close(sockfd);
             handle_request(clifd);
-            printf("childkilled\n");
             exit(0);
         }
         else{                //parent process: close clientfd
