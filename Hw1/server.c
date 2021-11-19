@@ -10,7 +10,7 @@
 #define BUFFER_SIZE 8096
 
 
-
+static int debug_mode=0;
 
 void sendData(int,char*,char*);
 
@@ -20,15 +20,16 @@ void getData(int clifd , char* buffer , char* fstr , char* extension){
     sprintf(temp,"Content-Type: %s",fstr);
     char* start = strstr(buffer , temp);  //image/jpeg
     char* end = strstr(start,"-------");
-    start+=28;
+    start+=27;
     char rawData[BUFFER_SIZE];
     memcpy(rawData,start,(end-start));
+    rawData[end-start] = '\0';
     char dataName[128];
     sprintf(dataName,"upload%s",extension);
+    if(debug_mode){
+        printf("生資料:%s\n\n",rawData);
+    }
     if(!strcmp(extension,".jpg") || !strcmp(extension,".png")){
-        for(int i=0;i<sizeof(buffer);i++){
-            printf("%c",buffer[i]);
-        }
         FILE* fd = fopen(dataName,"wb");
         fprintf(fd,"%s",rawData);
         fclose(fd);
@@ -59,8 +60,8 @@ void sendData(int clifd , char* requestedFile,char* contentType){
 
 void handle_request(int clifd){
 
-    char* category[5] = {"image/jpeg","image/png","text/html","text/plain","image/zip"};
-    char* category_[5] = {".jpg",".png",".html",".txt",".zip"};
+//    char* category[5] = {"image/jpeg","image/png","text/html","text/plain","image/zip"};
+//    char* category_[5] = {".jpg",".png",".html",".txt",".zip"};
 
 
     long ret = 0;
@@ -70,6 +71,10 @@ void handle_request(int clifd){
         printf("Connection Error.");
         exit(3);
     }
+    if(debug_mode){
+        printf("封包內容:%s\n\n",buffer);
+    }
+
 
 
     int buflen = strlen(buffer);
@@ -136,6 +141,12 @@ void sigchld(int signo)
 
 
 int main(int argc,char* argv[]){
+    //  debug mode
+    if(argc>1){
+        debug_mode = (int)argv[1][0]-'0';
+    }
+    
+
     //create socket
     int sockfd = 0;
     sockfd = socket(PF_INET,SOCK_STREAM,0);
