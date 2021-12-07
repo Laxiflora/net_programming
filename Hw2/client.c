@@ -18,6 +18,12 @@ typedef struct{
 }Data;
 
 
+void chess_fight(){
+
+}
+
+
+
 void list_players(int socket_fd){
     /*
     char* to_send;
@@ -39,20 +45,37 @@ void catch_data(void* userDat){
         responce[length]='\0';
         if(responce[0] == '['){ //list_players responce
             printf("%s ",responce);
+        }
+        else if(responce[0]=='i'){   //chess invitation
+            char quest[80];
+            memcpy(quest,responce+2,strlen(responce)-2);
+            if(quest[0]=='Y'){
+                pthread_exit("YES");
+            }
+            else if(quest[0]=='N'){
+                pthread_exit("NO");
+            }
+            else{
+                printf("user ID %s has just invite you to have a game! Accept? [Yes/No]\n",quest);
+                scanf("%s",responce);
+                if(strcmp(responce,"Yes")==0){
+                    send(userData->socket_fd,"Y",sizeof("Y"),0);
+                }
+                else{
+                    send(userData->socket_fd,"0",sizeof("0"),0);
+                }
+//to fix
+            }
+        }
     }
-
-
-
-    }
-
-
-
-
 }
 
 
 void invite(char* targetname,int socket_fd){
-    
+    char bridge[20];
+    sprintf(bridge,"i %s",targetname);
+    send(socket_fd,bridge,sizeof(bridge),0);
+    int length=-1;
 }
 
 
@@ -122,10 +145,17 @@ int main(int argc, char**argv)
 
             case 2 :
                 ;
+                char to_duel[5];
                 char targetname[USERNAME_BUFF];
-                printf("enter the player you want to play with:\n");
-                fgets(targetname, USERNAME_BUFF, stdin);
+                printf("enter the player ID you want to play with:");
+                scanf("%s",targetname);
                 invite(targetname,socket_fd);
+                pthread_join(recv_thread,(void*)to_duel);
+                pthread_create(&recv_thread,NULL,(void*)catch_data,&userData);
+                printf("DUEL = %s",to_duel);
+                if(to_duel[0]=='Y'){
+                    chess_fight();
+                }
                 break;
             default:
                 break;

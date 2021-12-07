@@ -28,12 +28,15 @@ typedef struct{
 PlayerData playerList[MAXUSER];
 
 
+void chessgame(int enemyfd,int indexfd){
+    printf("in chess game");
+}
+
+
+
 void list_player(int caller){
     char responce[BUFFER];
     int j=0;
-    pthread_mutex_unlock(&mutex);
-    printf("LOCK>\n");
-    pthread_mutex_lock(&mutex);
     for(int i=0;playerList[i].using!=0;i++){
         responce[j++] = '[';
         char temp[10];
@@ -46,8 +49,6 @@ void list_player(int caller){
         j+=strlen(playerList[i].username);
         responce[j++]='\n';
     }
-    printf("UNLOCK>\n");
-    pthread_mutex_unlock(&mutex);
     send(caller,responce,j,0);
 }
 
@@ -75,7 +76,7 @@ void lobby(int index){
         length = recv(playerList[index].connfd, request, REQUEST_BUFF, 0);
         request[length] = '\0';
         switch(request[0]){
-            case 'l':   //list player request
+            case 'l' :   //list player request
                 ;
                 printf("flagF\n");
 /*          
@@ -86,10 +87,35 @@ void lobby(int index){
                 */
                 list_player(playerList[index].connfd);
                 printf("flagG\n");
-            case 'i':   //invite player to play
-                for(length=0;request[length]!='\0';length++){
-                    
+                break;
+            case 'i' :   //invite player to play
+                ;
+                //entract enemy player fd
+                char str[80];
+                memcpy(str,request+2,strlen(request)-2);
+                printf("enemy = %s\n",str);
+                int enemy = strtol(str,NULL,10);
+                printf("num_enemy = %d", enemy);
+
+                //get enemy player name
+                for(int i=0;playerList[i].using!=0;i++){
+                    if(playerList[i].connfd == enemy){
+                        char invitation[80];
+                        sprintf(invitation,"i %s",playerList[index].username);
+                        printf("invitation %s" , invitation);
+                        send(enemy,invitation,sizeof(invitation),0);
+                        recv(enemy,invitation,sizeof(invitation),0);
+                        if(invitation[2]=='Y'){
+                            send(index,"i Y",sizeof("i Y"),0);
+                            chessgame(enemy,index);
+                        }
+                    }
                 }
+                break;
+            case 'm':   //game movement
+                ;
+                break;
+
         }
 
     }
@@ -129,7 +155,6 @@ int main(int argc,char* argv[]){
 
     //----------------------------------
     while(1){
-        pthread_mutex_lock(&mutex);
         int i=0;
         for(i=0;i<MAXUSER;i++){
             if(playerList[i].using==0){
@@ -139,10 +164,15 @@ int main(int argc,char* argv[]){
         playerList[i].connfd = accept(sockfd, playerList[i].cli_addr , &playerList[i].length);
         playerList[i].using=1;
         playerList[i].pthread = malloc(sizeof(pthread_t));
-        pthread_mutex_unlock(&mutex);
         pthread_create(playerList[i].pthread, NULL, (void*)(&lobby), (void*)i);
     }
 
 
     return 0;
 }
+
+/*
+    pthread_mutex_unlock(&mutex);
+    printf("LOCK>\n");
+    pthread_mutex_lock(&mutex);
+    */
