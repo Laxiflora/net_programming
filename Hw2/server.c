@@ -16,6 +16,7 @@
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
+
 typedef struct{
     pthread_t* pthread;
     int connfd;
@@ -23,6 +24,7 @@ typedef struct{
     int using;  //is it using?
     struct sockaddr* cli_addr;
     socklen_t length;
+    int pair;
 }PlayerData;
 
 PlayerData playerList[MAXUSER];
@@ -75,11 +77,12 @@ void lobby(int index){
         char request[REQUEST_BUFF];
         length = recv(playerList[index].connfd, request, REQUEST_BUFF, 0);
         request[length] = '\0';
+        printf("收到%d的要求：%s\n",playerList[index].connfd,request);
         switch(request[0]){
             case 'l' :   //list player request
                 ;
                 printf("flagF\n");
-/*          
+                /*          
                 char* str;
                 memcpy(str,request+2,sizeof(request)-sizeof(char)*2);
                 printf("caller = %s",str);
@@ -95,7 +98,7 @@ void lobby(int index){
                 memcpy(str,request+2,strlen(request)-2);
                 printf("enemy = %s\n",str);
                 int enemy = strtol(str,NULL,10);
-                printf("num_enemy = %d", enemy);
+                printf("num_enemy = %d\n", enemy);
 
                 //get enemy player name
                 for(int i=0;playerList[i].using!=0;i++){
@@ -104,14 +107,44 @@ void lobby(int index){
                         sprintf(invitation,"i %s",playerList[index].username);
                         printf("invitation %s" , invitation);
                         send(enemy,invitation,sizeof(invitation),0);
-                        recv(enemy,invitation,sizeof(invitation),0);
-                        if(invitation[2]=='Y'){
-                            send(index,"i Y",sizeof("i Y"),0);
-                            chessgame(enemy,index);
-                        }
+                        playerList[index].pair=enemy;
                     }
                 }
                 break;
+
+            case 'Y' : //Accept duel
+                    ;
+                    int i=0;
+                    for(i=0; playerList[i].using!=0;i++){
+                        if(playerList[i].pair == playerList[index].connfd){
+                            break;
+                        }
+                    }
+                    enemy = playerList[i].connfd;
+                    playerList[index].pair = enemy;
+                    printf("send %d A1\n",enemy);
+                    send(enemy,"A1",sizeof("A1"),0);                  
+                    chessgame(enemy,index);
+
+            case 'N':  //Decline duel
+                    ;
+                    i=0;
+                    for(i=0; playerList[i].using!=0;i++){
+                        if(playerList[i].pair == playerList[index].connfd){
+                            break;
+                        }
+                    }
+                    enemy = playerList[i].connfd;
+                    playerList[index].pair = enemy;
+                    printf("send %d A1\n",enemy);
+                    send(enemy,"A0",sizeof("A0"),0);                  
+                    chessgame(enemy,index);
+
+            case '0':
+                
+
+
+
             case 'm':   //game movement
                 ;
                 break;
@@ -119,10 +152,6 @@ void lobby(int index){
         }
 
     }
-
-
-
-
 }
 
 
@@ -138,6 +167,7 @@ int main(int argc,char* argv[]){
     for(int i=0;i<MAXUSER;i++){
         playerList[i].using=0;
         playerList[i].connfd=-1;
+        playerList[i].pair = -1;
     }
 
 

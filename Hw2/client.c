@@ -12,6 +12,11 @@
 #define USERNAME_BUFF 10
 #define BUFFER 8000
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+int invitation = 0;
+
+
 typedef struct{
     int socket_fd;
     char* username;
@@ -60,11 +65,29 @@ void catch_data(void* userDat){
                 scanf("%s",responce);
                 if(strcmp(responce,"Yes")==0){
                     send(userData->socket_fd,"Y",sizeof("Y"),0);
+                    invitation = 1;
+                    printf("You accepted a duel! press 3 to enter the contest.\n");
                 }
                 else{
-                    send(userData->socket_fd,"0",sizeof("0"),0);
+                    send(userData->socket_fd,"N",sizeof("N"),0);
+                    invitation = -1;
                 }
 //to fix
+            }
+        }
+        else if (responce[0]=='A'){
+            if(responce[1]=='1'){
+                printf("Invite Accepted.\n");
+                invitation=1;
+                pthread_mutex_lock(&mutex);
+                pthread_cond_signal(&cond);
+                pthread_mutex_unlock(&mutex);
+            }
+            else{
+                printf("Invite rejected.\n");
+                pthread_mutex_lock(&mutex);
+                pthread_cond_signal(&cond);
+                pthread_mutex_unlock(&mutex);
             }
         }
     }
@@ -72,10 +95,9 @@ void catch_data(void* userDat){
 
 
 void invite(char* targetname,int socket_fd){
-    char bridge[20];
+    char bridge[50];
     sprintf(bridge,"i %s",targetname);
     send(socket_fd,bridge,sizeof(bridge),0);
-    int length=-1;
 }
 
 
@@ -132,10 +154,16 @@ int main(int argc, char**argv)
     send(socket_fd, userData.username, strlen(username), 0);
 
     while(1){
+        if(invitation == 1){   //accept a chess_game invite
+            printf("entering the game...\n");
+            chess_fight();
+        }
+
         printf("welcome %s ! please enter your action...\n\
         1: list online players\n\
         2:invite someone to play\n\
-        3:exit\n",username);
+        3:update status\n\
+        4:exit\n",username);
         int choice =0;
         scanf("%d" ,&choice);
         switch(choice){
@@ -150,12 +178,13 @@ int main(int argc, char**argv)
                 printf("enter the player ID you want to play with:");
                 scanf("%s",targetname);
                 invite(targetname,socket_fd);
-                pthread_join(recv_thread,(void*)to_duel);
-                pthread_create(&recv_thread,NULL,(void*)catch_data,&userData);
-                printf("DUEL = %s",to_duel);
-                if(to_duel[0]=='Y'){
-                    chess_fight();
-                }
+                printf("Waiting for opponent...\n");
+                pthread_mutex_lock(&mutex);
+                pthread_cond_wait(&cond,&mutex);
+                pthread_mutex_unlock(&mutex);
+                break;
+            case 3 :
+                ;
                 break;
             default:
                 break;
