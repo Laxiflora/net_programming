@@ -86,9 +86,9 @@ void lobby(int index){
 
         if(strcmp(request,"exit")==0){
             send(playerList[index].connfd,"exit",sizeof("exit"),0);
-            printf("Thread %d exit.\n",playerList[index].connfd);
+            printf("User %s exit.\n",playerList[index].username);
             init_playerList(index);
-            playerList[index].using = 0;
+//            playerList[index].using = 0;
             close(playerList[index].connfd);
             playerList[index].connfd = -1;
             pthread_exit(NULL);
