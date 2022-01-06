@@ -52,11 +52,11 @@ void handle_packet(u_char* args,const struct pcap_pkthdr* header,const u_char* p
 	for(int i=0;i<4;i++,ip_header++){
 		printf("%02x ",*ip_header);
 	}
-	printf("\nSrc Mac Address :");
+	printf("\nSrc Mac Address : ");
 	for(int i=0;i<4;i++,ip_header++){
 		printf("%02x ",*ip_header);
 	}
-    printf("\nEthernet Type :");
+    printf("\nEthernet Type : 0x");
     for(int i=0;i<2;i++,ip_header++){
         printf("%02x",*ip_header);
     }
@@ -78,11 +78,11 @@ void handle_packet(u_char* args,const struct pcap_pkthdr* header,const u_char* p
 	else{
 		printf("\nIP header length (IHL) in bytes: %d", ip_header_length);
         ip_header = ip_header + 12;
-        printf("\nSrc IP address : ");
+        printf("\nSrc IP address : 0x");
         for(int i=0;i<4;i++,ip_header++){
             printf("%02x",*ip_header);
         }
-        printf("\nDest IP address :");
+        printf("\nDest IP address : 0x");
         for(int i=0;i<4;i++,ip_header++){
 		    printf("%02x",*ip_header);
 	    }
@@ -95,6 +95,7 @@ void handle_packet(u_char* args,const struct pcap_pkthdr* header,const u_char* p
        Protocol is always the 10th byte of the IP header */
     ip_header = packet + ethernet_header_length;
     u_char protocol = *(ip_header + 9);  //+1 -> +1byte
+    printf("\nProtocol Type(in hex) : %02x",protocol);
     if (protocol != IPPROTO_TCP && protocol != IPPROTO_UDP) {
         printf("\nNot a TCP/UDP packet.\n\n");
         return;
@@ -102,16 +103,16 @@ void handle_packet(u_char* args,const struct pcap_pkthdr* header,const u_char* p
     else if(protocol == IPPROTO_TCP){
         /* process TCP package */
         tcp_header = packet + ethernet_header_length + ip_header_length;
-        printf("\nIs TCP , src port = %02x" , *tcp_header++);
+        printf("\nIs TCP , src port = 0x%02x" , *tcp_header++);
         printf(" %02x",*tcp_header++);
         printf("\nDes port = %02x" , *tcp_header++);
         printf(" %02x",*tcp_header++);
     }
     else{
-        printf("\nIs UDP , src port = %02x" , *tcp_header++);
-        printf(" %02x",*tcp_header++);
-        printf("\nDes port = %02x" , *tcp_header++);
-        printf(" %02x",*tcp_header++);
+        printf("\nIs UDP , src port = 0x%02x" , *tcp_header++);
+        printf("%02x",*tcp_header++);
+        printf("\nDes port = 0x%02x" , *tcp_header++);
+        printf("%02x",*tcp_header++);
     }
 
     /* Add the ethernet and ip header length to the start of the packet
