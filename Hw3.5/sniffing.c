@@ -71,9 +71,6 @@ void handle_packet(u_char* args,const struct pcap_pkthdr* header,const u_char* p
                 printf("%2x%2x:",ipv6_header->saddr.s6_addr[i],ipv6_header->saddr.s6_addr[i+1]);
             }
             printf("\nDest IP =");
-            for(int i=0;i<16;i+=2){
-                printf("%2x%2x:",ipv6_header->daddr.s6_addr[i],ipv6_header->daddr.s6_addr[i+1]);
-            }
         }
         else{
             printf("It's a IPV4 packet.\n");
@@ -84,14 +81,14 @@ void handle_packet(u_char* args,const struct pcap_pkthdr* header,const u_char* p
         if(ipv4_header->protocol == IPPROTO_TCP){ //is a TCP protocol
             tcp_header = (struct tcphdr*)(packet+sizeof(struct ether_header)+sizeof(struct iphdr));
             printf("It's a TCP packet.\n");
-            printf("Src Port = %4X\n" , tcp_header->source);
-            printf("Dst Port = %4X\n" , tcp_header->dest);
+            printf("Src Port = %4X\n" , ntohs(tcp_header->source));
+            printf("Dst Port = %4X\n" , ntohs(tcp_header->dest));
         }
         else if(ipv4_header->protocol == IPPROTO_UDP){ //is a UDP protocol
             udp_header = (struct udphdr*)(packet+sizeof(struct ether_header)+sizeof(struct iphdr));
             printf("It's a UDP packet.\n");
-            printf("Src Port = %4X\n" , udp_header->source);
-            printf("Dst Port = %4X\n" , udp_header->dest);
+            printf("Src Port = %4X\n" , ntohs(udp_header->source));
+            printf("Dst Port = %4X\n" , ntohs(udp_header->dest));
         }
 
 
